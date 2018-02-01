@@ -25,6 +25,7 @@
   "scripts": {
     "dev": "gulp",
     "prepublish": "gulp transpile",
+    "prepare": "gulp transpile",
     "test": "npm run lint && ava",
     "lint": "xo",
     "format": "prettier --single-quote --no-semi --write *.js {src,test}/*.js",
