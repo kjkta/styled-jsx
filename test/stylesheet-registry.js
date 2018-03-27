@@ -5,7 +5,7 @@ import test from 'ava'
 import StyleSheetRegistry from '../src/stylesheet-registry'
 import makeSheet, { invalidRules } from './stylesheet'
 
-function makeRegistry(options) {
+function makeRegistry(options = { optimizeForSpeed: true, isBrowser: true }) {
   const registry = new StyleSheetRegistry({
     styleSheet: makeSheet(options),
     ...options
@@ -20,7 +20,12 @@ const cssRuleAlt = 'p { color: red }'
 // registry.add
 
 test('add', t => {
-  const options = [{ optimizeForSpeed: true, isBrowser: true }, { optimizeForSpeed: false, isBrowser: true }, { optimizeForSpeed: true, isBrowser: false }, { optimizeForSpeed: false, isBrowser: false }]
+  const options = [
+    { optimizeForSpeed: true, isBrowser: true },
+    { optimizeForSpeed: false, isBrowser: true },
+    { optimizeForSpeed: true, isBrowser: false },
+    { optimizeForSpeed: false, isBrowser: false }
+  ]
 
   options.forEach(options => {
     const registry = makeRegistry(options)
@@ -80,10 +85,34 @@ test('add - filters out invalid rules (index `-1`)', t => {
   ])
 })
 
+test('add - sanitizes dynamic CSS on the server', t => {
+  const registry = makeRegistry({ optimizeForSpeed: false, isBrowser: false })
+
+  registry.add({
+    styleId: '123',
+    css: [
+      'div.__jsx-style-dynamic-selector { color: red</style><script>alert("howdy")</script> }'
+    ],
+    dynamic: ['red</style><script>alert("howdy")</script>']
+  })
+
+  t.deepEqual(registry.cssRules(), [
+    [
+      'jsx-1871671996',
+      'div.jsx-1871671996 { color: red<\\/style><script>alert("howdy")</script> }'
+    ]
+  ])
+})
+
 // registry.remove
 
 test('remove', t => {
-  const options = [{ optimizeForSpeed: true, isBrowser: true }, { optimizeForSpeed: false, isBrowser: true }, { optimizeForSpeed: true, isBrowser: false }, { optimizeForSpeed: false, isBrowser: false }]
+  const options = [
+    { optimizeForSpeed: true, isBrowser: true },
+    { optimizeForSpeed: false, isBrowser: true },
+    { optimizeForSpeed: true, isBrowser: false },
+    { optimizeForSpeed: false, isBrowser: false }
+  ]
 
   options.forEach(options => {
     const registry = makeRegistry(options)
@@ -119,7 +148,12 @@ test('remove', t => {
 // registry.update
 
 test('update', t => {
-  const options = [{ optimizeForSpeed: true, isBrowser: true }, { optimizeForSpeed: false, isBrowser: true }, { optimizeForSpeed: true, isBrowser: false }, { optimizeForSpeed: false, isBrowser: false }]
+  const options = [
+    { optimizeForSpeed: true, isBrowser: true },
+    { optimizeForSpeed: false, isBrowser: true },
+    { optimizeForSpeed: true, isBrowser: false },
+    { optimizeForSpeed: false, isBrowser: false }
+  ]
 
   options.forEach(options => {
     const registry = makeRegistry(options)
@@ -133,7 +167,13 @@ test('update', t => {
       css: options.optimizeForSpeed ? [cssRule] : cssRule
     })
 
-    registry.update({ styleId: '123' }, { styleId: '345', css: options.optimizeForSpeed ? [cssRuleAlt] : cssRuleAlt })
+    registry.update(
+      { styleId: '123' },
+      {
+        styleId: '345',
+        css: options.optimizeForSpeed ? [cssRuleAlt] : cssRuleAlt
+      }
+    )
     // Doesn't remove when there are multiple instances of 123
     t.deepEqual(registry.cssRules(), [
       ['jsx-123', cssRule],
@@ -144,7 +184,13 @@ test('update', t => {
     t.deepEqual(registry.cssRules(), [['jsx-123', cssRule]])
 
     // Update again
-    registry.update({ styleId: '123' }, { styleId: '345', css: options.optimizeForSpeed ? [cssRuleAlt] : cssRuleAlt })
+    registry.update(
+      { styleId: '123' },
+      {
+        styleId: '345',
+        css: options.optimizeForSpeed ? [cssRuleAlt] : cssRuleAlt
+      }
+    )
     // 123 replaced with 345
     t.deepEqual(registry.cssRules(), [['jsx-345', cssRuleAlt]])
   })
@@ -169,9 +215,17 @@ test('createComputeId', t => {
 // createComputeSelector
 
 test('createComputeSelector', t => {
-  const computeSelector = utilRegistry.createComputeSelector()
+  const computeSelector = utilRegistry
+    .createComputeSelector()
+    .bind(utilRegistry)
 
-  t.is(computeSelector('jsx-123', '.test {} .__jsx-style-dynamic-selector { color: red } .__jsx-style-dynamic-selector { color: red }'), '.test {} .jsx-123 { color: red } .jsx-123 { color: red }')
+  t.is(
+    computeSelector(
+      'jsx-123',
+      '.test {} .__jsx-style-dynamic-selector { color: red } .__jsx-style-dynamic-selector { color: red }'
+    ),
+    '.test {} .jsx-123 { color: red } .jsx-123 { color: red }'
+  )
 })
 
 // getIdAndRules

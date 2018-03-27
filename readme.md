@@ -10,6 +10,8 @@ Full, scoped and component-friendly CSS support for JSX (rendered on the server 
 
 Code and docs are for v2 which we highly recommend you to try. Looking for styled-jsx v1? Switch to the [v1 branch](https://github.com/zeit/styled-jsx/tree/v1).
 
+For an overview about the **features** and **tradeoffs** of styled-jsx you may want to take a look at [this presentation](https://speakerdeck.com/giuseppe/styled-jsx).
+
 - [Getting started](#getting-started)
 - [Configuration options](#configuration-options)
   * [`optimizeForSpeed`](#optimizeforspeed)
@@ -35,7 +37,9 @@ Code and docs are for v2 which we highly recommend you to try. Looking for style
   * [Example plugins](#example-plugins)
 - [FAQ](#faq)
   * [Warning: unknown `jsx` prop on &lt;style&gt; tag](#warning-unknown-jsx-prop-on-style-tag)
+  * [Can I return an array of components when using React 16?](#can-i-return-an-array-of-components-when-using-react-16)
   * [Styling third parties / child components from the parent](#styling-third-parties--child-components-from-the-parent)
+  * [Some styles are missing in production](https://github.com/zeit/styled-jsx/issues/319#issuecomment-349239326)
 - [Syntax Highlighting](#syntax-highlighting)
 
 ## Getting started
@@ -552,7 +556,7 @@ The `options` object has the following shape:
     sourceMaps: boolean,
     vendorPrefixes: boolean,
     isGlobal: boolean,
-    filename: ?string, // defined only when styled-jsx/babel is used via Babel CLI,
+    filename: ?string, // defined only when the filename option is passed to Babel, such as when using Babel CLI or Webpack
     location: { // the original location of the CSS block in the JavaScript file
       start: {
         line: number,
@@ -581,9 +585,22 @@ The following plugins are proof of concepts/sample:
 
 ### Warning: unknown `jsx` prop on &lt;style&gt; tag
 
-If you get this warning it means that, for some reason, your styles were not compiled by styled-jsx.
+If you get this warning it means that your styles were not compiled by styled-jsx.
 
 Please take a look at your setup and make sure that everything is correct and that the styled-jsx transformation is ran by Babel.
+
+### Can I return an array of components when using React 16?
+
+No, this feature is not supported. However we support React Fragments, which are available in React `16.2.0` and above.
+
+```jsx
+const StyledImage = ({ src, alt = '' }) => (
+  <React.Fragment>
+   <img src={src} alt={alt} />
+   <style jsx>{`img { max-width: 100% }`}</style>
+  </React.Fragment>
+)
+```
 
 ### Styling third parties / child components from the parent
 
@@ -610,7 +627,7 @@ export default ({ children }) => (
     </Link>
 
     {/* apply the scoped styles */}
-    {scope.styles}
+    {scoped.styles}
   </div>
 )
 ```
@@ -706,13 +723,17 @@ const Button = ({ children }) => (
 }
 ```
 
-### [Visual Studio Code Extension](https://marketplace.visualstudio.com/items?itemName=blanu.vscode-styled-jsx)
+### Syntax Highlighting [Visual Studio Code Extension](https://marketplace.visualstudio.com/items?itemName=blanu.vscode-styled-jsx)
 Launch VS Code Quick Open (⌘+P), paste the following command, and press enter.
 ```
 ext install vscode-styled-jsx
 ```
-#### Autocomplete
-By now, this extension doesn't support autocomplete. However, you can install [ES6 Template Literal Editor](https://marketplace.visualstudio.com/items?itemName=plievone.vscode-template-literal-editor) extension to edit styles in another pane, and you will get full feature of css language service provided by VS Code.
+
+### Autocomplete [Visual Studio Code Extension](https://marketplace.visualstudio.com/items?itemName=AndrewRazumovsky.vscode-styled-jsx-languageserver)
+Launch VS Code Quick Open (⌘+P), paste the following command, and press enter.
+```
+ext install vscode-styled-jsx-languageserver
+```
 
 ### Vim
 

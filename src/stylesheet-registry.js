@@ -1,21 +1,26 @@
 import hashString from 'string-hash'
 import DefaultStyleSheet from './lib/stylesheet'
 
+const sanitize = rule => rule.replace(/\/style/ig, '\\/style')
 export default class StyleSheetRegistry {
-  constructor(
-    {
-      styleSheet = null,
-      optimizeForSpeed = false,
-      isBrowser = typeof window !== 'undefined'
-    } = {}
-  ) {
+  constructor({
+    styleSheet = null,
+    optimizeForSpeed = false,
+    isBrowser = typeof window !== 'undefined'
+  } = {}) {
     this._sheet =
       styleSheet ||
       new DefaultStyleSheet({
         name: 'styled-jsx',
         optimizeForSpeed
       })
+
     this._sheet.inject()
+    if (styleSheet && typeof optimizeForSpeed === 'boolean') {
+      this._sheet.setOptimizeForSpeed(optimizeForSpeed)
+      this._optimizeForSpeed = this._sheet.isOptimizeForSpeed()
+    }
+
     this._isBrowser = isBrowser
 
     this._fromServer = undefined
@@ -35,12 +40,13 @@ export default class StyleSheetRegistry {
 
     if (this._isBrowser && !this._fromServer) {
       this._fromServer = this.selectFromServer()
-      this._instancesCounts = Object.keys(
-        this._fromServer
-      ).reduce((acc, tagName) => {
-        acc[tagName] = 0
-        return acc
-      }, {})
+      this._instancesCounts = Object.keys(this._fromServer).reduce(
+        (acc, tagName) => {
+          acc[tagName] = 0
+          return acc
+        },
+        {}
+      )
     }
 
     const { styleId, rules } = this.getIdAndRules(props)
@@ -147,6 +153,12 @@ export default class StyleSheetRegistry {
   ) {
     const cache = {}
     return function(id, css) {
+      // Sanitize SSR-ed CSS.
+      // Client side code doesn't need to be sanitized since we use
+      // document.createTextNode (dev) and the CSSOM api sheet.insertRule (prod).
+      if (!this._isBrowser) {
+        css = sanitize(css)
+      }
       const idcss = id + css
       if (!cache[idcss]) {
         cache[idcss] = css.replace(selectoPlaceholderRegexp, id)
